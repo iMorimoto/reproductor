@@ -8,6 +8,8 @@ package reproductor;
 import java.io.*;
 import javax.swing.DefaultListModel;
 import java.util.ArrayList;
+import java.util.Collections;
+import javazoom.jl.decoder.JavaLayerException;
 import javazoom.jl.player.Player;
 
 /**
@@ -15,14 +17,12 @@ import javazoom.jl.player.Player;
  * @author fabiruxs
  */
 public class Reproductor extends javax.swing.JFrame {
-    
-    Playlist playList=new Playlist();
-    
-    ArrayList updateList= new ArrayList();
-    
-    Player player;
-    File simpan;
-    
+
+    private Player player;
+    private File fileSong;
+    private PlayList playList = new PlayList();
+    private ArrayList updatedList = new ArrayList();
+    private boolean isPlaying = false;
 
     /**
      * Constructor Reproductor
@@ -31,219 +31,100 @@ public class Reproductor extends javax.swing.JFrame {
         initComponents();
         this.setLocationRelativeTo(null);
     }
-    
-    
-    void updateList(){
-    
-        updateList=playList.getListSong();
-        DefaultListModel model=new DefaultListModel();
-        
-        for(int i=0;i<updateList.size();i++)
-            {
-                int j=1+1;
-                model.add(i,j + " | " + ((File) updateList.get(i)).getName());
-                
-                
-            }
-        jPlaylist.setModel(model);
-           
-    }
-    
-    public void add(){
-    
-        playList.add(this);
-        updateList();
-    }
-    
-    void remove(){
-    
-        try {
-              int memoherdez=jPlaylist.getLeadSelectionIndex();
-              playList.listSong.remove(memoherdez);
-              updateList();
-            
-        } catch (Exception e) {
+
+    private void updateList() {
+
+        DefaultListModel playListModel = new DefaultListModel();
+        updatedList = playList.getListSong();
+
+        for (int i = 0; i < updatedList.size(); i++) {
+
+            File song = (File) updatedList.get(i);
+            // System.out.println(song.getName());
+            playListModel.addElement(song.getName());
+
         }
-        
+        jListSong.setModel(playListModel);
+
     }
 
-     void up(){
-    
-         try {
-                int s1=jPlaylist.getLeadSelectionIndex();
-                simpan=(File)playList.listSong.get(s1);
-                playList.listSong.remove(s1);
-                playList.listSong.add(s1-1,simpan);
-                updateList();
-                jPlaylist.setSelectedIndex(s1-1);
-             
-         } catch (Exception e) {
-         }
-        
+    private void play() {
+
+        int selectedIndex = jListSong.getSelectedIndex();
+        if (selectedIndex < 0) {
+            selectedIndex = 0;
+        }
+        File song = (File) updatedList.get(selectedIndex);
+        InputStream in;
+        PlayMusicThread playMusic;
+        try {
+            in = new FileInputStream(song);
+            player = new Player(in);
+            playMusic = new PlayMusicThread(player);
+            playMusic.start();
+            isPlaying = true;
+            jListSong.setSelectedIndex(selectedIndex);
+        } catch (FileNotFoundException ex) {
+            ex.printStackTrace();
+        } catch (JavaLayerException ex) {
+            ex.printStackTrace();
+        }
+
     }
-     
-      void down(){
-          
-          try {
-                int s1=jPlaylist.getLeadSelectionIndex();
-                simpan=(File)playList.listSong.get(s1);
-                playList.listSong.remove(s1);
-                playList.listSong.add(s1+1,simpan);
-                updateList();
-                jPlaylist.setSelectedIndex(s1+1);
-             
-         } catch (Exception e) {
-         }
-        
+
+    private void stop() {
+        player.close();
+        isPlaying = false;
     }
-      
-      void open(){
-    
-        playList.openDirectory(this);
-        updateList();
+
+    private void next() {
+
+        int selectedIndex = jListSong.getSelectedIndex() + 1;
+        if (selectedIndex > updatedList.size() - 1) {
+            selectedIndex = 0;
+        }
+        File song = (File) updatedList.get(selectedIndex);
+        InputStream in;
+        PlayMusicThread playMusic;
+        try {
+            in = new FileInputStream(song);
+            player = new Player(in);
+            playMusic = new PlayMusicThread(player);
+            playMusic.start();
+            isPlaying = true;
+            jListSong.setSelectedIndex(selectedIndex);
+        } catch (FileNotFoundException ex) {
+            ex.printStackTrace();
+        } catch (JavaLayerException ex) {
+            ex.printStackTrace();
+        }
+
     }
-      
-      void save(){
-    
-       playList.saveAsPlaylist(this);
-       updateList();
+
+    void previous() {
+
+        int selectedIndex = jListSong.getSelectedIndex() - 1;
+        if (selectedIndex < 0) {
+            selectedIndex = updatedList.size() - 1;
+        }
+        File song = (File) updatedList.get(selectedIndex);
+        InputStream in;
+        PlayMusicThread playMusic;
+        try {
+            in = new FileInputStream(song);
+            player = new Player(in);
+            playMusic = new PlayMusicThread(player);
+            playMusic.start();
+            isPlaying = true;
+            jListSong.setSelectedIndex(selectedIndex);
+        } catch (FileNotFoundException ex) {
+            ex.printStackTrace();
+        } catch (JavaLayerException ex) {
+            ex.printStackTrace();
+        }
+
     }
-      
-      File play1;
-      static int a=0;
-      
-      void play(){
-      
-          if(a==0)
-             {
-                 try {
-                        int p1=jPlaylist.getSelectedIndex();
-                        play1=(File)this.updateList.get(p1);
-                        FileInputStream fis=new FileInputStream(play1);
-                        BufferedInputStream bis=new BufferedInputStream(fis);
-                        player=new javazoom.jl.player.Player(bis);
-                        a=1;
-                     
-                 } catch (Exception e) {
-                     System.out.println("Problema al tocar musica");
-                     System.out.println(e);
-                 }
-                 
-                 new Thread()
-                     {
-                         @Override
-                         public void run(){
-                         
-                             try {
-                                   player.play();
-                                 
-                             } catch (Exception e) {
-                                 
-                             }
-                         }
-                  
-                     }.start();
-                 
-             }
-          else
-              {
-                 player.close();
-                 a=0;
-                 play();
-                  
-              }
-          
-      }
-      
-      File sa;
-      void next(){
-      
-      if(a==0)
-             {
-                 try {
-                        int s1=jPlaylist.getSelectedIndex()+1;
-                        sa=(File)this.playList.listSong.get(s1);
-                        FileInputStream fis=new FileInputStream(sa);
-                        BufferedInputStream bis=new BufferedInputStream(fis);
-                        player=new javazoom.jl.player.Player(bis);
-                        a=1;
-                        jPlaylist.setSelectedIndex(s1);
-                     
-                 } catch (Exception e) {
-                     System.out.println("Problema al tocar musica");
-                     System.out.println(e);
-                 }
-                 
-                 new Thread()
-                     {
-                         @Override
-                         public void run(){
-                         
-                             try {
-                                   player.play();
-                                 
-                             } catch (Exception e) {
-                                 
-                             }
-                         }
-                  
-                     }.start();
-                 
-             }
-          else
-              {
-                 player.close();
-                 a=0;
-                 next();
-                  
-              }    
-          
-      }
-      
-      void previous(){
-      
-             if(a==0)
-             {
-                 try {
-                        int s1=jPlaylist.getSelectedIndex()-1;
-                        sa=(File)this.playList.listSong.get(s1);
-                        FileInputStream fis=new FileInputStream(sa);
-                        BufferedInputStream bis=new BufferedInputStream(fis);
-                        player=new javazoom.jl.player.Player(bis);
-                        a=1;
-                        jPlaylist.setSelectedIndex(s1);
-                     
-                 } catch (Exception e) {
-                     System.out.println("Problema al tocar musica");
-                     System.out.println(e);
-                 }
-                 
-                 new Thread()
-                     {
-                         @Override
-                         public void run(){
-                         
-                             try {
-                                   player.play();
-                                 
-                             } catch (Exception e) {
-                                 
-                             }
-                         }
-                  
-                     }.start();
-                 
-             }
-          else
-              {
-                 player.close();
-                 a=0;
-                 previous();
-                  
-              } 
-          
-      }
-      
+
     /**
      * This method is called from within the constructor to initialize the form.
      * WARNING: Do NOT modify this code. The content of this method is always
@@ -253,87 +134,88 @@ public class Reproductor extends javax.swing.JFrame {
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
-        btnadd = new javax.swing.JButton();
-        btnremove = new javax.swing.JButton();
-        btndown = new javax.swing.JButton();
-        btnup = new javax.swing.JButton();
-        btnopen = new javax.swing.JButton();
+        btnAdd = new javax.swing.JButton();
+        btnRemove = new javax.swing.JButton();
+        btnDown = new javax.swing.JButton();
+        btnUp = new javax.swing.JButton();
+        btnOpen = new javax.swing.JButton();
         jScrollPane1 = new javax.swing.JScrollPane();
-        jPlaylist = new javax.swing.JList<>();
-        btnprevius = new javax.swing.JButton();
-        btnplay = new javax.swing.JButton();
-        btnnext = new javax.swing.JButton();
-        btnstop = new javax.swing.JButton();
+        jListSong = new javax.swing.JList<>();
+        btnPrevious = new javax.swing.JButton();
+        btnPlay = new javax.swing.JButton();
+        btnNext = new javax.swing.JButton();
+        btnStop = new javax.swing.JButton();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
+        setTitle("Fabiruxs Player");
 
-        btnadd.setIcon(new javax.swing.ImageIcon(getClass().getResource("/Imagenes/add.png"))); // NOI18N
-        btnadd.setToolTipText("Agregar canción");
-        btnadd.addActionListener(new java.awt.event.ActionListener() {
+        btnAdd.setIcon(new javax.swing.ImageIcon(getClass().getResource("/Imagenes/add.png"))); // NOI18N
+        btnAdd.setToolTipText("Agregar canción");
+        btnAdd.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
-                btnaddActionPerformed(evt);
+                btnAddActionPerformed(evt);
             }
         });
 
-        btnremove.setIcon(new javax.swing.ImageIcon(getClass().getResource("/Imagenes/remove.png"))); // NOI18N
-        btnremove.setToolTipText("Eliminar canción");
-        btnremove.addActionListener(new java.awt.event.ActionListener() {
+        btnRemove.setIcon(new javax.swing.ImageIcon(getClass().getResource("/Imagenes/remove.png"))); // NOI18N
+        btnRemove.setToolTipText("Eliminar canción");
+        btnRemove.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
-                btnremoveActionPerformed(evt);
+                btnRemoveActionPerformed(evt);
             }
         });
 
-        btndown.setIcon(new javax.swing.ImageIcon(getClass().getResource("/Imagenes/arrow_down.png"))); // NOI18N
-        btndown.setToolTipText("Baja una canción de posición");
-        btndown.addActionListener(new java.awt.event.ActionListener() {
+        btnDown.setIcon(new javax.swing.ImageIcon(getClass().getResource("/Imagenes/arrow_down.png"))); // NOI18N
+        btnDown.setToolTipText("Baja una canción de posición");
+        btnDown.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
-                btndownActionPerformed(evt);
+                btnDownActionPerformed(evt);
             }
         });
 
-        btnup.setIcon(new javax.swing.ImageIcon(getClass().getResource("/Imagenes/arrow_up.png"))); // NOI18N
-        btnup.setToolTipText("Sube una canción de posición");
-        btnup.addActionListener(new java.awt.event.ActionListener() {
+        btnUp.setIcon(new javax.swing.ImageIcon(getClass().getResource("/Imagenes/arrow_up.png"))); // NOI18N
+        btnUp.setToolTipText("Sube una canción de posición");
+        btnUp.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
-                btnupActionPerformed(evt);
+                btnUpActionPerformed(evt);
             }
         });
 
-        btnopen.setIcon(new javax.swing.ImageIcon(getClass().getResource("/Imagenes/open_folder.png"))); // NOI18N
-        btnopen.setToolTipText("Seleccionar carpeta");
-        btnopen.addActionListener(new java.awt.event.ActionListener() {
+        btnOpen.setIcon(new javax.swing.ImageIcon(getClass().getResource("/Imagenes/open_folder.png"))); // NOI18N
+        btnOpen.setToolTipText("Seleccionar carpeta");
+        btnOpen.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
-                btnopenActionPerformed(evt);
+                btnOpenActionPerformed(evt);
             }
         });
 
-        jScrollPane1.setViewportView(jPlaylist);
+        jScrollPane1.setViewportView(jListSong);
 
-        btnprevius.setIcon(new javax.swing.ImageIcon(getClass().getResource("/Imagenes/previous.png"))); // NOI18N
-        btnprevius.addActionListener(new java.awt.event.ActionListener() {
+        btnPrevious.setIcon(new javax.swing.ImageIcon(getClass().getResource("/Imagenes/previous.png"))); // NOI18N
+        btnPrevious.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
-                btnpreviusActionPerformed(evt);
+                btnPreviousActionPerformed(evt);
             }
         });
 
-        btnplay.setIcon(new javax.swing.ImageIcon(getClass().getResource("/Imagenes/play.png"))); // NOI18N
-        btnplay.addActionListener(new java.awt.event.ActionListener() {
+        btnPlay.setIcon(new javax.swing.ImageIcon(getClass().getResource("/Imagenes/play.png"))); // NOI18N
+        btnPlay.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
-                btnplayActionPerformed(evt);
+                btnPlayActionPerformed(evt);
             }
         });
 
-        btnnext.setIcon(new javax.swing.ImageIcon(getClass().getResource("/Imagenes/next.png"))); // NOI18N
-        btnnext.addActionListener(new java.awt.event.ActionListener() {
+        btnNext.setIcon(new javax.swing.ImageIcon(getClass().getResource("/Imagenes/next.png"))); // NOI18N
+        btnNext.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
-                btnnextActionPerformed(evt);
+                btnNextActionPerformed(evt);
             }
         });
 
-        btnstop.setIcon(new javax.swing.ImageIcon(getClass().getResource("/Imagenes/stop.png"))); // NOI18N
-        btnstop.addActionListener(new java.awt.event.ActionListener() {
+        btnStop.setIcon(new javax.swing.ImageIcon(getClass().getResource("/Imagenes/stop.png"))); // NOI18N
+        btnStop.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
-                btnstopActionPerformed(evt);
+                btnStopActionPerformed(evt);
             }
         });
 
@@ -350,95 +232,150 @@ public class Reproductor extends javax.swing.JFrame {
                                 .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 532, javax.swing.GroupLayout.PREFERRED_SIZE)
                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                                    .addComponent(btndown, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                                    .addComponent(btnup, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))
+                                    .addComponent(btnDown, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                    .addComponent(btnUp, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))
                             .addGroup(layout.createSequentialGroup()
-                                .addComponent(btnopen)
+                                .addComponent(btnOpen)
                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                .addComponent(btnadd)
+                                .addComponent(btnAdd)
                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                .addComponent(btnremove))))
+                                .addComponent(btnRemove))))
                     .addGroup(layout.createSequentialGroup()
                         .addGap(97, 97, 97)
-                        .addComponent(btnprevius, javax.swing.GroupLayout.PREFERRED_SIZE, 72, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addComponent(btnPrevious, javax.swing.GroupLayout.PREFERRED_SIZE, 72, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(btnplay, javax.swing.GroupLayout.PREFERRED_SIZE, 84, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addComponent(btnPlay, javax.swing.GroupLayout.PREFERRED_SIZE, 84, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(btnnext, javax.swing.GroupLayout.PREFERRED_SIZE, 72, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addComponent(btnNext, javax.swing.GroupLayout.PREFERRED_SIZE, 72, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(btnstop, javax.swing.GroupLayout.PREFERRED_SIZE, 72, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                        .addComponent(btnStop, javax.swing.GroupLayout.PREFERRED_SIZE, 72, javax.swing.GroupLayout.PREFERRED_SIZE)))
                 .addContainerGap(58, Short.MAX_VALUE))
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
                 .addContainerGap()
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(btnremove)
-                    .addComponent(btnadd)
-                    .addComponent(btnopen))
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(btnRemove)
+                    .addComponent(btnAdd)
+                    .addComponent(btnOpen, javax.swing.GroupLayout.Alignment.TRAILING))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addGroup(layout.createSequentialGroup()
-                        .addComponent(btnup)
+                        .addComponent(btnUp)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(btndown))
+                        .addComponent(btnDown))
                     .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 215, javax.swing.GroupLayout.PREFERRED_SIZE))
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addGroup(layout.createSequentialGroup()
                         .addGap(23, 23, 23)
                         .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                            .addComponent(btnstop, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                            .addComponent(btnnext, javax.swing.GroupLayout.PREFERRED_SIZE, 45, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                            .addComponent(btnStop, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                            .addComponent(btnNext, javax.swing.GroupLayout.PREFERRED_SIZE, 45, javax.swing.GroupLayout.PREFERRED_SIZE)))
                     .addGroup(layout.createSequentialGroup()
                         .addGap(18, 18, 18)
-                        .addComponent(btnplay, javax.swing.GroupLayout.PREFERRED_SIZE, 57, javax.swing.GroupLayout.PREFERRED_SIZE))
+                        .addComponent(btnPlay, javax.swing.GroupLayout.PREFERRED_SIZE, 57, javax.swing.GroupLayout.PREFERRED_SIZE))
                     .addGroup(layout.createSequentialGroup()
                         .addGap(24, 24, 24)
-                        .addComponent(btnprevius, javax.swing.GroupLayout.PREFERRED_SIZE, 45, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                        .addComponent(btnPrevious, javax.swing.GroupLayout.PREFERRED_SIZE, 45, javax.swing.GroupLayout.PREFERRED_SIZE)))
                 .addContainerGap(35, Short.MAX_VALUE))
         );
 
         pack();
     }// </editor-fold>//GEN-END:initComponents
 
-    private void btnplayActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnplayActionPerformed
-        play();
-    }//GEN-LAST:event_btnplayActionPerformed
+    private void btnPlayActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnPlayActionPerformed
+        //play();
+        if (!isPlaying) {
+            play();
+        } else {
+            stop();
+            play();
+        }
 
-    private void btnaddActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnaddActionPerformed
-       playList.add(this);
-       updateList();
-    }//GEN-LAST:event_btnaddActionPerformed
+    }//GEN-LAST:event_btnPlayActionPerformed
 
-    private void btnremoveActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnremoveActionPerformed
-        remove();
-    }//GEN-LAST:event_btnremoveActionPerformed
+    private void btnAddActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnAddActionPerformed
+        int selectedIndex = jListSong.getLeadSelectionIndex();
+        playList.add(this);
+        updateList();
+        jListSong.setSelectedIndex(selectedIndex);
+    }//GEN-LAST:event_btnAddActionPerformed
 
-    private void btnpreviusActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnpreviusActionPerformed
-        previous();
-    }//GEN-LAST:event_btnpreviusActionPerformed
+    private void btnRemoveActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnRemoveActionPerformed
+        int selectedIndex = jListSong.getLeadSelectionIndex();
+        playList.getListSong().remove(selectedIndex);
+        updateList();
+        jListSong.setSelectedIndex(selectedIndex);
+    }//GEN-LAST:event_btnRemoveActionPerformed
 
-    private void btnnextActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnnextActionPerformed
-        next();
-    }//GEN-LAST:event_btnnextActionPerformed
+    private void btnPreviousActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnPreviousActionPerformed
+        //previous();
+        if (!isPlaying) {
+            previous();
+        } else {
+            stop();
+            previous();
+        }
+    }//GEN-LAST:event_btnPreviousActionPerformed
 
-    private void btnupActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnupActionPerformed
-        up();
-    }//GEN-LAST:event_btnupActionPerformed
+    private void btnNextActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnNextActionPerformed
+        if (!isPlaying) {
+            next();
+        } else {
+            stop();
+            next();
+        }
+    }//GEN-LAST:event_btnNextActionPerformed
 
-    private void btndownActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btndownActionPerformed
-       down();
-    }//GEN-LAST:event_btndownActionPerformed
+    private void btnUpActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnUpActionPerformed
 
-    private void btnopenActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnopenActionPerformed
-        open();
-    }//GEN-LAST:event_btnopenActionPerformed
+        int selectedIndex = jListSong.getSelectedIndex();
 
-    private void btnstopActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnstopActionPerformed
-        player.close();
-        
-    }//GEN-LAST:event_btnstopActionPerformed
+        fileSong = (File) playList.getListSong().get(selectedIndex);
+        playList.getListSong().remove(selectedIndex);
+        int selectedIndexUp = selectedIndex - 1;
+        if (selectedIndexUp < 0) {
+            playList.getListSong().add(updatedList.size(), fileSong);
+            updateList();
+            jListSong.setSelectedIndex(updatedList.size() - 1);
+        } else {
+            playList.getListSong().add(selectedIndexUp, fileSong);
+            updateList();
+            jListSong.setSelectedIndex(selectedIndexUp);
+        }
+
+
+    }//GEN-LAST:event_btnUpActionPerformed
+
+    private void btnDownActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnDownActionPerformed
+
+        int selectedIndex = jListSong.getSelectedIndex();
+        fileSong = (File) playList.getListSong().get(selectedIndex);
+        playList.getListSong().remove(selectedIndex);
+        int selectedIndexDown = selectedIndex + 1;
+        if (selectedIndexDown > updatedList.size()) {
+            playList.getListSong().add(0, fileSong);
+            updateList();
+            jListSong.setSelectedIndex(0);
+        } else {
+            playList.getListSong().add(selectedIndexDown, fileSong);
+            updateList();
+            jListSong.setSelectedIndex(selectedIndexDown);
+        }
+
+
+    }//GEN-LAST:event_btnDownActionPerformed
+
+    private void btnOpenActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnOpenActionPerformed
+        playList.openDirectory(this);
+        updateList();
+    }//GEN-LAST:event_btnOpenActionPerformed
+
+    private void btnStopActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnStopActionPerformed
+        stop();
+
+    }//GEN-LAST:event_btnStopActionPerformed
 
     /**
      * @param args the command line arguments
@@ -477,16 +414,16 @@ public class Reproductor extends javax.swing.JFrame {
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
-    private javax.swing.JButton btnadd;
-    private javax.swing.JButton btndown;
-    private javax.swing.JButton btnnext;
-    private javax.swing.JButton btnopen;
-    private javax.swing.JButton btnplay;
-    private javax.swing.JButton btnprevius;
-    private javax.swing.JButton btnremove;
-    private javax.swing.JButton btnstop;
-    private javax.swing.JButton btnup;
-    private javax.swing.JList<String> jPlaylist;
+    private javax.swing.JButton btnAdd;
+    private javax.swing.JButton btnDown;
+    private javax.swing.JButton btnNext;
+    private javax.swing.JButton btnOpen;
+    private javax.swing.JButton btnPlay;
+    private javax.swing.JButton btnPrevious;
+    private javax.swing.JButton btnRemove;
+    private javax.swing.JButton btnStop;
+    private javax.swing.JButton btnUp;
+    private javax.swing.JList<String> jListSong;
     private javax.swing.JScrollPane jScrollPane1;
     // End of variables declaration//GEN-END:variables
 
